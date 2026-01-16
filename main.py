@@ -324,6 +324,9 @@ class Dictation:
                             f"Post-processing duration: {postprocess_duration:.2f}s"
                         )
 
+                # Strip newlines to avoid triggering actions when typing
+                text = " ".join(text.split())
+
                 copy_to_clipboard(text)
                 if self.auto_type:
                     type_text(text)
