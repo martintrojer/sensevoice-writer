@@ -19,11 +19,19 @@ import evdev
 from evdev import UInput, ecodes
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
+from huggingface_hub import hf_hub_download
+from llama_cpp import Llama
 
 __version__ = "0.1.0"
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+POSTPROCESS_PROMPT = """Clean up this speech transcript. Fix grammar, punctuation, and capitalization. Remove filler words (um, uh, like, you know). Output only the cleaned text, nothing else.
+
+Transcript: {transcript}
+
+Cleaned:"""
 
 KEY_MAP = {
     "f1": ecodes.KEY_F1,
@@ -133,11 +141,12 @@ def create_uinput(keyboards):
 
 
 class Dictation:
-    def __init__(self, hotkey, auto_type, grab, notifications):
+    def __init__(self, hotkey, auto_type, grab, notifications, postprocess):
         self.hotkey = hotkey
         self.auto_type = auto_type
         self.grab = grab
         self.notifications = notifications
+        self.postprocess = postprocess
 
         self.recording = False
         self.record_process = None
@@ -145,6 +154,9 @@ class Dictation:
         self.model = None
         self.model_loaded = threading.Event()
         self.model_error = None
+        self.llm = None
+        self.llm_loaded = threading.Event()
+        self.llm_error = None
         self.running = True
         self.keyboards = []
         self.selector = None
@@ -152,6 +164,12 @@ class Dictation:
 
         print("Loading SenseVoiceSmall model...")
         threading.Thread(target=self._load_model, daemon=True).start()
+
+        if self.postprocess:
+            print("Loading Qwen3 model for post-processing...")
+            threading.Thread(target=self._load_llm, daemon=True).start()
+        else:
+            self.llm_loaded.set()
 
     def _load_model(self):
         try:
@@ -171,6 +189,43 @@ class Dictation:
             self.model_error = str(e)
             self.model_loaded.set()
             print(f"Failed to load model: {e}")
+
+    def _load_llm(self):
+        try:
+            model_path = hf_hub_download(
+                repo_id="Qwen/Qwen3-0.6B-GGUF",
+                filename="Qwen3-0.6B-Q8_0.gguf",
+            )
+            self.llm = Llama(
+                model_path=model_path,
+                n_ctx=2048,
+                n_threads=4,
+                verbose=False,
+            )
+            self.llm_loaded.set()
+            print("Qwen3 model loaded.")
+        except Exception as e:
+            self.llm_error = str(e)
+            self.llm_loaded.set()
+            print(f"Failed to load Qwen3 model: {e}")
+
+    def _postprocess_text(self, text):
+        """Clean up transcript using LLM."""
+        if not self.llm or self.llm_error:
+            return text
+        try:
+            prompt = POSTPROCESS_PROMPT.format(transcript=text)
+            result = self.llm(
+                prompt,
+                max_tokens=len(text) * 2,
+                stop=["\n\n", "Transcript:"],
+                echo=False,
+            )
+            cleaned = result["choices"][0]["text"].strip()
+            return cleaned if cleaned else text
+        except Exception as e:
+            logger.debug(f"Post-processing failed: {e}")
+            return text
 
     def notify(self, title, message, icon="dialog-information", timeout=2000):
         """Send a desktop notification."""
@@ -250,6 +305,12 @@ class Dictation:
             text = rich_transcription_postprocess(res[0]["text"])
 
             if text:
+                if self.postprocess:
+                    self.llm_loaded.wait()
+                    if not self.llm_error:
+                        print("Post-processing...")
+                        text = self._postprocess_text(text)
+
                 copy_to_clipboard(text)
                 if self.auto_type:
                     type_text(text)
@@ -405,6 +466,12 @@ def main():
         action="store_true",
         help="Disable desktop notifications",
     )
+    parser.add_argument(
+        "-p",
+        "--postprocess",
+        action="store_true",
+        help="Enable LLM post-processing to clean up transcript (uses Qwen3-0.6B)",
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -425,6 +492,7 @@ def main():
         auto_type=auto_type,
         grab=args.grab,
         notifications=notifications,
+        postprocess=args.postprocess,
     )
 
     def handle_sigint(sig, frame):

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-SenseVoice Writer - A push-to-talk voice dictation tool using SenseVoiceSmall. Wayland and PipeWire only.
+SenseVoice Writer - A push-to-talk voice dictation tool using SenseVoiceSmall. Wayland and PipeWire only. Optional LLM post-processing with Qwen3-0.6B GGUF.
 
 ## Commands
 
@@ -15,6 +15,9 @@ uv run python main.py
 
 # Run with options
 uv run python main.py -k pause --no-type -g
+
+# Run with LLM post-processing
+uv run python main.py -p
 
 # Format code
 uv run ruff format .
