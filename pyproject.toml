@@ -1,0 +1,29 @@
+[project]
+name = "sensevoice-writer"
+version = "0.1.0"
+description = "Push-to-talk voice dictation using SenseVoiceSmall"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "evdev>=1.7.0",
+    "funasr>=1.3.0",
+    "huggingface_hub",
+    "modelscope>=1.33.0",
+    "torch",
+    "torchaudio",
+]
+
+[project.scripts]
+sensevoice-writer = "main:main"
+
+[dependency-groups]
+dev = ["ruff"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torchaudio = { index = "pytorch-cpu" }
+torch = { index = "pytorch-cpu" }
