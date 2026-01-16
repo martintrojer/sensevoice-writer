@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 import evdev
 from evdev import UInput, ecodes
@@ -253,6 +254,7 @@ class Dictation:
             return
 
         self.recording = True
+        self.record_start_time = time.perf_counter()
         self.temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         self.temp_file.close()
 
@@ -275,11 +277,14 @@ class Dictation:
             return
 
         self.recording = False
+        record_duration = time.perf_counter() - self.record_start_time
 
         if self.record_process:
             self.record_process.terminate()
             self.record_process.wait()
             self.record_process = None
+
+        logger.debug(f"Recording duration: {record_duration:.2f}s")
 
         print("Transcribing...")
         self.notify(
@@ -294,6 +299,7 @@ class Dictation:
             return
 
         try:
+            transcribe_start = time.perf_counter()
             res = self.model.generate(
                 input=self.temp_file.name,
                 cache={},
@@ -303,13 +309,20 @@ class Dictation:
                 merge_vad=True,
             )
             text = rich_transcription_postprocess(res[0]["text"])
+            transcribe_duration = time.perf_counter() - transcribe_start
+            logger.debug(f"Transcription duration: {transcribe_duration:.2f}s")
 
             if text:
                 if self.postprocess:
                     self.llm_loaded.wait()
                     if not self.llm_error:
                         print("Post-processing...")
+                        postprocess_start = time.perf_counter()
                         text = self._postprocess_text(text)
+                        postprocess_duration = time.perf_counter() - postprocess_start
+                        logger.debug(
+                            f"Post-processing duration: {postprocess_duration:.2f}s"
+                        )
 
                 copy_to_clipboard(text)
                 if self.auto_type:
