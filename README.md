@@ -48,8 +48,8 @@ uv run python main.py -k pause
 # Clipboard only (no auto-typing)
 uv run python main.py --no-type
 
-# Enable LLM post-processing to clean up transcript
-uv run python main.py -p
+# Disable LLM post-processing (get raw transcript)
+uv run python main.py --raw
 
 # Disable notifications
 uv run python main.py --no-notify
@@ -64,7 +64,7 @@ uv run python main.py -d
 |--------|-------------|
 | `-k, --key KEY` | Hotkey to hold for recording (default: f9) |
 | `--no-type` | Disable auto-typing, only copy to clipboard |
-| `-p, --postprocess` | Enable LLM post-processing (Qwen3-0.6B GGUF) |
+| `--raw` | Disable LLM post-processing (enabled by default) |
 | `--no-notify` | Disable desktop notifications |
 | `--delay MS` | Extra recording time after key release in ms (default: 250) |
 | `--check-updates` | Enable funasr update check (disabled by default) |
@@ -79,15 +79,16 @@ uv run python main.py -d
 
 1. Hold the hotkey to start recording via PipeWire
 2. Release to stop recording and transcribe with SenseVoiceSmall
-3. (Optional) LLM cleans up the transcript (fixes grammar, removes filler words)
+3. LLM cleans up the transcript (use `--raw` to skip)
 4. Text is copied to clipboard and typed into the active window
 
 ## Post-Processing
 
-The `-p` flag enables LLM post-processing using Qwen3-0.6B (GGUF format via llama-cpp-python). This cleans up the transcript by:
-- Fixing grammatical errors and typos
-- Standardizing punctuation and capitalization
+LLM post-processing is enabled by default using Qwen3-0.6B (GGUF format via llama-cpp-python). This cleans up the transcript by:
+- Fixing punctuation and capitalization
 - Removing filler words (um, ah, like)
-- Removing technical tags like [laughter]
+- Preserving technical terms and abbreviations
+
+Use `--raw` to disable post-processing and get the raw transcript.
 
 The model is downloaded automatically on first use from HuggingFace.

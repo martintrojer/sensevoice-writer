@@ -450,10 +450,9 @@ def main():
         help="Disable desktop notifications",
     )
     parser.add_argument(
-        "-p",
-        "--postprocess",
+        "--raw",
         action="store_true",
-        help="Enable LLM post-processing to clean up transcript (uses Qwen3-0.6B)",
+        help="Disable LLM post-processing (enabled by default)",
     )
     parser.add_argument(
         "--delay",
@@ -486,7 +485,7 @@ def main():
         hotkey=hotkey,
         auto_type=auto_type,
         notifications=notifications,
-        postprocess=args.postprocess,
+        postprocess=not args.raw,
         record_delay=args.delay,
         disable_update=not args.check_updates,
     )
