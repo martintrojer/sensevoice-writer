@@ -41,9 +41,6 @@ uv run python main.py -k pause
 # Clipboard only (no auto-typing)
 uv run python main.py --no-type
 
-# Grab keyboard exclusively (suppress hotkey from other apps)
-uv run python main.py -g
-
 # Enable LLM post-processing to clean up transcript
 uv run python main.py -p
 
@@ -60,7 +57,6 @@ uv run python main.py -d
 |--------|-------------|
 | `-k, --key KEY` | Hotkey to hold for recording (default: f12) |
 | `--no-type` | Disable auto-typing, only copy to clipboard |
-| `-g, --grab` | Grab keyboard exclusively |
 | `-p, --postprocess` | Enable LLM post-processing (Qwen3-0.6B GGUF) |
 | `--no-notify` | Disable desktop notifications |
 | `-d, --debug` | Enable debug logging |

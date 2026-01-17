@@ -14,7 +14,7 @@ uv sync
 uv run python main.py
 
 # Run with options
-uv run python main.py -k pause --no-type -g
+uv run python main.py -k pause --no-type
 
 # Run with LLM post-processing
 uv run python main.py -p

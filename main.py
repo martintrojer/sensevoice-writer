@@ -17,7 +17,7 @@ import threading
 import time
 
 import evdev
-from evdev import UInput, ecodes
+from evdev import ecodes
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 from huggingface_hub import hf_hub_download
@@ -119,33 +119,10 @@ def find_keyboards():
     return keyboards
 
 
-def create_uinput(keyboards):
-    """Create a virtual keyboard for re-injecting events."""
-    all_caps = {}
-    for kb in keyboards:
-        caps = kb.capabilities()
-        for event_type, codes in caps.items():
-            if event_type == ecodes.EV_SYN:
-                continue
-            if event_type not in all_caps:
-                all_caps[event_type] = set()
-            if isinstance(codes, list):
-                for code in codes:
-                    if isinstance(code, tuple):
-                        all_caps[event_type].add(code[0])
-                    else:
-                        all_caps[event_type].add(code)
-            else:
-                all_caps[event_type].add(codes)
-    caps_for_uinput = {k: list(v) for k, v in all_caps.items()}
-    return UInput(caps_for_uinput, name="SenseVoice Virtual Keyboard")
-
-
 class Dictation:
-    def __init__(self, hotkey, auto_type, grab, notifications, postprocess):
+    def __init__(self, hotkey, auto_type, notifications, postprocess):
         self.hotkey = hotkey
         self.auto_type = auto_type
-        self.grab = grab
         self.notifications = notifications
         self.postprocess = postprocess
 
@@ -161,7 +138,6 @@ class Dictation:
         self.running = True
         self.keyboards = []
         self.selector = None
-        self.uinput = None
 
         print("Loading SenseVoiceSmall model...")
         threading.Thread(target=self._load_model, daemon=True).start()
@@ -356,28 +332,10 @@ class Dictation:
                 self.start_recording()
             elif event.value == 0:  # Key release
                 self.stop_recording()
-            return
-
-        if self.grab and self.uinput:
-            self.uinput.write_event(event)
-            if event.type != ecodes.EV_SYN:
-                self.uinput.syn()
-
-    def cleanup(self):
-        """Release grabbed devices and close uinput."""
-        if self.grab:
-            for kb in self.keyboards:
-                try:
-                    kb.ungrab()
-                except OSError:
-                    pass
-            if self.uinput:
-                self.uinput.close()
 
     def stop(self):
         print("\nExiting...")
         self.running = False
-        self.cleanup()
         os.kill(os.getpid(), signal.SIGKILL)
 
     def run(self):
@@ -387,42 +345,21 @@ class Dictation:
             print("Make sure you're in the 'input' group: sudo usermod -aG input $USER")
             sys.exit(1)
 
-        if self.grab:
-            try:
-                self.uinput = create_uinput(self.keyboards)
-            except OSError as e:
-                print(f"Error creating virtual keyboard: {e}")
-                print("Try: sudo modprobe uinput")
-                sys.exit(1)
-
-            for kb in self.keyboards:
-                try:
-                    kb.grab()
-                except OSError as e:
-                    print(f"Warning: Could not grab {kb.name}: {e}")
-
-            print(
-                f"Monitoring {len(self.keyboards)} keyboard(s) with hotkey suppression..."
-            )
-        else:
-            print(f"Monitoring {len(self.keyboards)} keyboard(s)...")
+        print(f"Monitoring {len(self.keyboards)} keyboard(s)...")
 
         self.selector = selectors.DefaultSelector()
         for kb in self.keyboards:
             self.selector.register(kb, selectors.EVENT_READ)
 
-        try:
-            while self.running:
-                for key, mask in self.selector.select(timeout=1):
-                    device = key.fileobj
-                    try:
-                        for event in device.read():
-                            self.handle_event(event)
-                    except OSError:
-                        logger.debug(f"Device disconnected: {device.name}")
-                        self.selector.unregister(device)
-        finally:
-            self.cleanup()
+        while self.running:
+            for key, mask in self.selector.select(timeout=1):
+                device = key.fileobj
+                try:
+                    for event in device.read():
+                        self.handle_event(event)
+                except OSError:
+                    logger.debug(f"Device disconnected: {device.name}")
+                    self.selector.unregister(device)
 
 
 def check_dependencies(auto_type):
@@ -472,12 +409,6 @@ def main():
         help="Disable auto-typing (only copy to clipboard)",
     )
     parser.add_argument(
-        "-g",
-        "--grab",
-        action="store_true",
-        help="Grab keyboard exclusively (suppresses hotkey from other apps)",
-    )
-    parser.add_argument(
         "--no-notify",
         action="store_true",
         help="Disable desktop notifications",
@@ -499,14 +430,13 @@ def main():
     notifications = not args.no_notify
     hotkey = get_hotkey(args.key)
 
-    logger.debug(f"Hotkey: {args.key}, Auto-type: {auto_type}, Grab: {args.grab}")
+    logger.debug(f"Hotkey: {args.key}, Auto-type: {auto_type}")
 
     check_dependencies(auto_type)
 
     dictation = Dictation(
         hotkey=hotkey,
         auto_type=auto_type,
-        grab=args.grab,
         notifications=notifications,
         postprocess=args.postprocess,
     )
