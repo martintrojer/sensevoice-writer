@@ -120,11 +120,12 @@ def find_keyboards():
 
 
 class Dictation:
-    def __init__(self, hotkey, auto_type, notifications, postprocess):
+    def __init__(self, hotkey, auto_type, notifications, postprocess, record_delay):
         self.hotkey = hotkey
         self.auto_type = auto_type
         self.notifications = notifications
         self.postprocess = postprocess
+        self.record_delay = record_delay
 
         self.recording = False
         self.record_process = None
@@ -253,6 +254,12 @@ class Dictation:
             return
 
         self.recording = False
+
+        # Continue recording for a short delay after key release
+        if self.record_delay > 0:
+            logger.debug(f"Waiting {self.record_delay}ms before stopping recording")
+            time.sleep(self.record_delay / 1000.0)
+
         record_duration = time.perf_counter() - self.record_start_time
 
         if self.record_process:
@@ -419,6 +426,13 @@ def main():
         action="store_true",
         help="Enable LLM post-processing to clean up transcript (uses Qwen3-0.6B)",
     )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=250,
+        metavar="MS",
+        help="Extra recording time after key release in milliseconds (default: 250)",
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -439,6 +453,7 @@ def main():
         auto_type=auto_type,
         notifications=notifications,
         postprocess=args.postprocess,
+        record_delay=args.delay,
     )
 
     def handle_sigint(sig, frame):
