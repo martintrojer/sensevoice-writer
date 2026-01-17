@@ -29,7 +29,7 @@ __version__ = "0.1.0"
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-POSTPROCESS_PROMPT = """Clean up this speech transcript. Fix grammar, punctuation, and capitalization. Remove filler words (um, uh, like, you know). Output only the cleaned text, nothing else.
+POSTPROCESS_PROMPT = """Clean up this speech transcript for a technical coding context. Fix punctuation and capitalization. Remove filler words (um, uh, like, you know). Preserve all technical terms, abbreviations, and code-related words exactly as spoken. Do not expand abbreviations or change technical terminology. Output only the cleaned text.
 
 Transcript: {transcript}
 
