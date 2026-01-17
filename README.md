@@ -31,7 +31,12 @@ uv sync
 
 # To install as a tool
 uv tool install .
+
+# To reinstall after code changes (uv caches by version)
+uv tool install . --reinstall
 ```
+
+Note: `uv tool` caches installations by version number. If you modify the code locally, you must use `--reinstall` to pick up changes, or bump the version in `pyproject.toml`.
 
 ## Usage
 

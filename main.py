@@ -24,7 +24,7 @@ from funasr.utils.postprocess_utils import rich_transcription_postprocess
 from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
