@@ -59,6 +59,8 @@ uv run python main.py -d
 | `--no-type` | Disable auto-typing, only copy to clipboard |
 | `-p, --postprocess` | Enable LLM post-processing (Qwen3-0.6B GGUF) |
 | `--no-notify` | Disable desktop notifications |
+| `--delay MS` | Extra recording time after key release in ms (default: 250) |
+| `--check-updates` | Enable funasr update check (disabled by default) |
 | `-d, --debug` | Enable debug logging |
 | `-v, --version` | Show version |
 

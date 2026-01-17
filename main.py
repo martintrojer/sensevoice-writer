@@ -123,12 +123,21 @@ def find_keyboards():
 
 
 class Dictation:
-    def __init__(self, hotkey, auto_type, notifications, postprocess, record_delay):
+    def __init__(
+        self,
+        hotkey,
+        auto_type,
+        notifications,
+        postprocess,
+        record_delay,
+        disable_update,
+    ):
         self.hotkey = hotkey
         self.auto_type = auto_type
         self.notifications = notifications
         self.postprocess = postprocess
         self.record_delay = record_delay
+        self.disable_update = disable_update
 
         self.recording = False
         self.record_process = None
@@ -161,6 +170,7 @@ class Dictation:
                 vad_kwargs={"max_single_segment_time": 30000},
                 device="cpu",
                 hub="hf",
+                disable_update=self.disable_update,
             )
             self.model_loaded.set()
             hotkey_name = get_key_name(self.hotkey)
@@ -449,6 +459,11 @@ def main():
         metavar="MS",
         help="Extra recording time after key release in milliseconds (default: 250)",
     )
+    parser.add_argument(
+        "--check-updates",
+        action="store_true",
+        help="Enable funasr update check (disabled by default)",
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -470,6 +485,7 @@ def main():
         notifications=notifications,
         postprocess=args.postprocess,
         record_delay=args.delay,
+        disable_update=not args.check_updates,
     )
 
     def handle_sigint(sig, frame):
