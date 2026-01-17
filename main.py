@@ -167,7 +167,10 @@ class Dictation:
             self.model = AutoModel(
                 model="FunAudioLLM/SenseVoiceSmall",
                 vad_model="fsmn-vad",
-                vad_kwargs={"max_single_segment_time": 30000},
+                vad_kwargs={
+                    "max_single_segment_time": 30000,
+                    "disable_update": self.disable_update,
+                },
                 device="cpu",
                 hub="hf",
                 disable_update=self.disable_update,
