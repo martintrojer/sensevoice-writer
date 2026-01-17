@@ -9,6 +9,7 @@ import argparse
 import logging
 import os
 import selectors
+import shutil
 import signal
 import subprocess
 import sys
@@ -62,7 +63,7 @@ def get_hotkey(key_name):
         key_attr = f"KEY_{key_name.upper()}"
         if hasattr(ecodes, key_attr):
             return getattr(ecodes, key_attr)
-    print(f"Unknown key: {key_name}, defaulting to f12")
+    logger.warning(f"Unknown key: {key_name}, defaulting to f12")
     return ecodes.KEY_F12
 
 
@@ -85,7 +86,9 @@ def copy_to_clipboard(text):
 
 def type_text(text):
     """Type text into active window using wtype."""
-    subprocess.run(["wtype", text])
+    result = subprocess.run(["wtype", text], capture_output=True)
+    if result.returncode != 0:
+        logger.warning(f"wtype failed: {result.stderr.decode()}")
 
 
 def get_record_command(output_file):
@@ -129,6 +132,7 @@ class Dictation:
 
         self.recording = False
         self.record_process = None
+        self.record_start_time = None
         self.temp_file = None
         self.model = None
         self.model_loaded = threading.Event()
@@ -340,10 +344,20 @@ class Dictation:
             elif event.value == 0:  # Key release
                 self.stop_recording()
 
+    def cleanup(self):
+        """Clean up resources."""
+        if self.record_process:
+            self.record_process.terminate()
+            self.record_process.wait()
+        if self.temp_file and os.path.exists(self.temp_file.name):
+            os.unlink(self.temp_file.name)
+        if self.selector:
+            self.selector.close()
+
     def stop(self):
         print("\nExiting...")
         self.running = False
-        os.kill(os.getpid(), signal.SIGKILL)
+        self.cleanup()
 
     def run(self):
         self.keyboards = find_keyboards()
@@ -358,29 +372,31 @@ class Dictation:
         for kb in self.keyboards:
             self.selector.register(kb, selectors.EVENT_READ)
 
-        while self.running:
-            for key, mask in self.selector.select(timeout=1):
-                device = key.fileobj
-                try:
-                    for event in device.read():
-                        self.handle_event(event)
-                except OSError:
-                    logger.debug(f"Device disconnected: {device.name}")
-                    self.selector.unregister(device)
+        try:
+            while self.running:
+                for key, _ in self.selector.select(timeout=1):
+                    device = key.fileobj
+                    try:
+                        for event in device.read():
+                            self.handle_event(event)
+                    except OSError:
+                        logger.debug(f"Device disconnected: {device.name}")
+                        self.selector.unregister(device)
+        finally:
+            self.cleanup()
 
 
 def check_dependencies(auto_type):
     """Check that required system commands are available."""
     missing = []
 
-    if subprocess.run(["which", "pw-record"], capture_output=True).returncode != 0:
+    if not shutil.which("pw-record"):
         missing.append(("pw-record", "pipewire"))
 
-    if auto_type:
-        if subprocess.run(["which", "wtype"], capture_output=True).returncode != 0:
-            missing.append(("wtype", "wtype"))
+    if auto_type and not shutil.which("wtype"):
+        missing.append(("wtype", "wtype"))
 
-    if subprocess.run(["which", "wl-copy"], capture_output=True).returncode != 0:
+    if not shutil.which("wl-copy"):
         missing.append(("wl-copy", "wl-clipboard"))
 
     if missing:
