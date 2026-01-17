@@ -39,7 +39,7 @@ uv tool install .
 # If installed as a tool
 sensevoice-writer
 
-# Or run directly with uv (F12 hotkey by default)
+# Or run directly with uv (F9 hotkey by default)
 uv run python main.py
 
 # Custom hotkey
@@ -62,7 +62,7 @@ uv run python main.py -d
 
 | Option | Description |
 |--------|-------------|
-| `-k, --key KEY` | Hotkey to hold for recording (default: f12) |
+| `-k, --key KEY` | Hotkey to hold for recording (default: f9) |
 | `--no-type` | Disable auto-typing, only copy to clipboard |
 | `-p, --postprocess` | Enable LLM post-processing (Qwen3-0.6B GGUF) |
 | `--no-notify` | Disable desktop notifications |

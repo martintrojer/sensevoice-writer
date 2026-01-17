@@ -63,8 +63,8 @@ def get_hotkey(key_name):
         key_attr = f"KEY_{key_name.upper()}"
         if hasattr(ecodes, key_attr):
             return getattr(ecodes, key_attr)
-    logger.warning(f"Unknown key: {key_name}, defaulting to f12")
-    return ecodes.KEY_F12
+    logger.warning(f"Unknown key: {key_name}, defaulting to f9")
+    return ecodes.KEY_F9
 
 
 def get_key_name(keycode):
@@ -436,8 +436,8 @@ def main():
     parser.add_argument(
         "-k",
         "--key",
-        default="f12",
-        help="Hotkey to hold for recording (default: f12)",
+        default="f9",
+        help="Hotkey to hold for recording (default: f9)",
     )
     parser.add_argument(
         "--no-type",
