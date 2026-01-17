@@ -26,13 +26,20 @@ sudo usermod -aG input $USER
 ### Python Dependencies
 
 ```bash
+# For development
 uv sync
+
+# To install as a tool
+uv tool install .
 ```
 
 ## Usage
 
 ```bash
-# Basic usage (F12 hotkey)
+# If installed as a tool
+sensevoice-writer
+
+# Or run directly with uv (F12 hotkey by default)
 uv run python main.py
 
 # Custom hotkey
