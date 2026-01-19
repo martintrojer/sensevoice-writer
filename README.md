@@ -1,5 +1,7 @@
 # SenseVoice Writer
 
+> **Note:** This project has been superseded by [parakeet-writer](https://github.com/martintrojer/parakeet-writer).
+
 Push-to-talk voice dictation using [SenseVoiceSmall](https://huggingface.co/FunAudioLLM/SenseVoiceSmall). Hold a hotkey to record, release to transcribe and type.
 
 **Wayland and PipeWire only.**
